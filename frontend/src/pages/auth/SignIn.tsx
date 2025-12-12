@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Heart, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
+import axios from "axios";
 type UserRole = 'donor' | 'rider' | 'organisation' | 'admin';
 
 const SignIn = () => {
@@ -28,15 +28,52 @@ const SignIn = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate login
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      const res = await axios.post("http://localhost:5000/api/auth/login", {
+        email,
+        password,
+        role: selectedRole.toUpperCase(),
+      });
+
       toast({
-        title: 'Welcome back!',
+        title: "Login successful!",
         description: `Signed in as ${selectedRole}`,
       });
-      navigate(`/${selectedRole}/dashboard`);
-    }, 1000);
+
+      // Save token + role + user info
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("role", res.data.user.role);
+      localStorage.setItem("user", JSON.stringify(res.data.user)); // <-- Important
+
+      // Redirect user based on actual role stored in DB
+      switch (res.data.user.role) {
+        case "DONOR":
+          navigate("/donor/dashboard");
+          break;
+        case "RIDER":
+          navigate("/rider/dashboard");
+          break;
+        case "ORGANISATION":
+          navigate("/organisation/dashboard");
+          break;
+        case "ADMIN":
+          navigate("/admin/dashboard");
+          break;
+        default:
+          navigate("/");
+      }
+
+    } catch (err: any) {
+      console.log("LOGIN ERROR:", err.response?.data);
+
+      toast({
+        title: "Login Failed",
+        description: err.response?.data?.message || "Invalid email or password",
+        variant: "destructive",
+      });
+    }
+
+    setIsLoading(false);
   };
 
   return (

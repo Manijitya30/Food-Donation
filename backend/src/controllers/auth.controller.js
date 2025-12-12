@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { prism} from "../config/prism.js";
+import  prisma  from "../config/prisma.js";
 
 export const signup = async (req, res) => {
   try {
@@ -67,7 +67,16 @@ export const signup = async (req, res) => {
       });
     }
 
-    return res.status(201).json({ message: "Account created", user });
+    return res.status(201).json({
+      message: "Account created successfully",
+      token,
+      user: {
+        id: newUser.id,
+        name: newUser.name,
+        email: newUser.email,
+        role: newUser.role
+      }
+    });
 
   } catch (err) {
     console.log(err);
@@ -93,7 +102,17 @@ export const login = async (req, res) => {
       { expiresIn: "7d" }
     );
 
-    res.json({ message: "Login success", token, user });
+    return res.status(200).json({
+      message: "Login successful",
+      token,
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role
+      }
+    });
+
 
   } catch (err) {
     console.log(err);

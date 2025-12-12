@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Heart, Eye, EyeOff, ArrowLeft, User, Truck, Building2, CheckCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-
+import axios from "axios"; 
 type UserRole = 'donor' | 'rider' | 'organisation';
 
 const SignUp = () => {
@@ -37,30 +37,88 @@ const SignUp = () => {
     { value: 'organisation' as UserRole, label: 'Organisation', icon: Building2, description: 'I want to receive food' },
   ];
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (password !== confirmPassword) {
-      toast({
-        title: 'Error',
-        description: 'Passwords do not match',
-        variant: 'destructive',
-      });
-      return;
+ 
+
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (password !== confirmPassword) {
+    toast({
+      title: "Error",
+      description: "Passwords do not match",
+      variant: "destructive",
+    });
+    return;
+  }
+
+  setIsLoading(true);
+
+  try {
+    const payload: any = {
+      name,
+      email,
+      phone,
+      address,
+      password,
+      role: selectedRole.toUpperCase(),
+    };
+
+    if (selectedRole === "rider") {
+      payload.vehicleType = vehicleType;
+      payload.vehicleNumber = vehicleNumber;
     }
 
-    setIsLoading(true);
+    if (selectedRole === "organisation") {
+      payload.organisationType = orgType;
+      payload.capacity = Number(capacity);
+    }
 
-    // Simulate registration
-    setTimeout(() => {
-      setIsLoading(false);
-      toast({
-        title: 'Account created!',
-        description: 'Welcome to NourishNet. You can now sign in.',
-      });
-      navigate('/auth/signin');
-    }, 1500);
-  };
+    const res = await axios.post(
+      "http://localhost:5000/api/auth/signup",
+      payload
+    );
+
+    toast({
+      title: "Account created!",
+      description: "Your account has been created successfully",
+    });
+
+    // 🔥 SAVE TOKEN + USER INFO
+    if (res.data.token) {
+      localStorage.setItem("token", res.data.token);
+    }
+
+    if (res.data.user) {
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+      localStorage.setItem("role", res.data.user.role);
+    }
+
+    // Redirect based on role
+    switch (selectedRole) {
+      case "donor":
+        navigate("/donor/dashboard");
+        break;
+      case "rider":
+        navigate("/rider/dashboard");
+        break;
+      case "organisation":
+        navigate("/organisation/dashboard");
+        break;
+      default:
+        navigate("/");
+    }
+  } catch (err: any) {
+    toast({
+      title: "Signup Failed",
+      description: err.response?.data?.message || "Something went wrong",
+      variant: "destructive",
+    });
+  }
+
+  setIsLoading(false);
+};
+
+
 
   return (
     <div className="min-h-screen bg-gradient-hero flex">

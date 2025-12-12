@@ -2,27 +2,30 @@ import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { StatsCard } from '@/components/shared/StatsCard';
 import { DonationCard } from '@/components/shared/DonationCard';
 import { Button } from '@/components/ui/button';
-import { donations, donors } from '@/lib/dummy-data';
 import { Package, Clock, CheckCircle, TrendingUp, Plus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const DonorDashboard = () => {
-  const currentDonor = donors[0];
-  const donorDonations = donations.filter(d => d.donorId === currentDonor.id);
-  const activeDonations = donorDonations.filter(d => d.status !== 'delivered');
-  const completedDonations = donorDonations.filter(d => d.status === 'delivered');
+  // ✅ Load real logged-in user
+  const currentDonor = JSON.parse(localStorage.getItem("user") || "{}");
+
+  // For now, remove dummy data (until real backend donations exist)
+  const donorDonations: any[] = [];
+  const activeDonations: any[] = [];
+  const completedDonations: any[] = [];
 
   return (
-    <DashboardLayout role="donor" userName={currentDonor.name}>
+    <DashboardLayout role="donor" userName={currentDonor?.name}>
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard
           title="Total Donations"
-          value={currentDonor.totalDonations}
+          value={currentDonor.totalDonations || 0}
           icon={Package}
           trend="+12% from last month"
           trendUp
         />
+
         <StatsCard
           title="Active Donations"
           value={activeDonations.length}
