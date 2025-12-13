@@ -3,47 +3,85 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 generator client {
   provider = "prisma-client-js"
 }
+
 model User {
-  id        Int       @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   name      String
-  email     String    @unique
+  email     String   @unique
   phone     String?
   address   String?
   password  String
   role      Role
+  createdAt DateTime @default(now())
 
-  // Relations for each specific role
-  donor       Donor?
-  rider       Rider?
+  donor        Donor?
+  rider        Rider?
   organisation Organisation?
 
-  createdAt DateTime @default(now())
+  donationsGiven Donation[] @relation("DonorDonations")
+  donationsRide  Donation[] @relation("RiderDonations")
 }
 
 model Donor {
-  id      Int  @id @default(autoincrement())
-  userId  Int  @unique
-  user    User @relation(fields: [userId], references: [id])
+  id     Int  @id @default(autoincrement())
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id])
 }
 
 model Rider {
-  id           Int  @id @default(autoincrement())
-  userId       Int  @unique
-  user         User @relation(fields: [userId], references: [id])
-  vehicleType  String
+  id            Int     @id @default(autoincrement())
+  userId        Int     @unique
+  user          User    @relation(fields: [userId], references: [id])
+  vehicleType   String
   vehicleNumber String
+  isAvailable   Boolean @default(true)
 }
 
 model Organisation {
-  id             Int  @id @default(autoincrement())
-  userId         Int  @unique
-  user           User @relation(fields: [userId], references: [id])
+  id               Int     @id @default(autoincrement())
+  userId           Int     @unique
+  user             User    @relation(fields: [userId], references: [id])
   organisationType String
-  capacity       Int
+  capacity         Int
+  isActive         Boolean @default(true)
+
+  donations Donation[]
+}
+
+model Donation {
+  id Int @id @default(autoincrement())
+
+  donorId Int
+  donor   User @relation("DonorDonations", fields: [donorId], references: [id])
+
+  organisationId Int?
+  organisation   Organisation? @relation(fields: [organisationId], references: [id])
+
+  riderId Int?
+  rider   User? @relation("RiderDonations", fields: [riderId], references: [id])
+
+  pickupAddress String
+  pickupTime    DateTime
+  notes         String?
+
+  status DonationStatus @default(PENDING)
+
+  foodItems FoodItem[]
+  createdAt DateTime   @default(now())
+}
+
+model FoodItem {
+  id       Int    @id @default(autoincrement())
+  name     String
+  quantity Int
+  unit     String
+  category String
+
+  donationId Int
+  donation   Donation @relation(fields: [donationId], references: [id])
 }
 
 enum Role {
@@ -51,4 +89,14 @@ enum Role {
   RIDER
   ORGANISATION
   ADMIN
+}
+
+enum DonationStatus {
+  PENDING
+  ASSIGNED
+  ACCEPTED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
 }
