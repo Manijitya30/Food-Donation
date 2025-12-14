@@ -1,34 +1,62 @@
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { StatsCard } from '@/components/shared/StatsCard';
-import { DonationCard } from '@/components/shared/DonationCard';
-import { Button } from '@/components/ui/button';
-import { Package, Clock, CheckCircle, Users, TrendingUp } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { StatsCard } from "@/components/shared/StatsCard";
+import { DonationCard } from "@/components/shared/DonationCard";
+import { Button } from "@/components/ui/button";
+import {
+  Package,
+  Clock,
+  CheckCircle,
+  Users,
+  TrendingUp,
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 const OrganisationDashboard = () => {
-  // ✅ Load logged-in organisation from localStorage
   const [currentOrg, setCurrentOrg] = useState<any>(null);
+  const [donations, setDonations] = useState<any[]>([]);
+  const token = localStorage.getItem("token");
 
+  /* ================= LOAD ORG + DONATIONS ================= */
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setCurrentOrg(JSON.parse(storedUser));
-    }
+    if (storedUser) setCurrentOrg(JSON.parse(storedUser));
+
+    fetchOrganisationDonations();
   }, []);
 
-  // For now, donations remain empty until backend integration
-  const orgDonations: any[] = [];
-  const incomingDonations: any[] = [];
-  const receivedDonations: any[] = [];
+  const fetchOrganisationDonations = async () => {
+    try {
+      const res = await axios.get(
+        "http://localhost:5000/api/donations/organisation",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setDonations(res.data);
+    } catch (err) {
+      console.error("Failed to fetch organisation donations", err);
+    }
+  };
 
   if (!currentOrg) {
     return <div className="p-6 text-center text-lg">Loading organisation...</div>;
   }
 
-  // Capacity values come from DB signup
+  /* ================= DATA DERIVATIONS ================= */
+  const incomingDonations = donations.filter(
+    (d) => d.status !== "DELIVERED"
+  );
+
+  const receivedDonations = donations.filter(
+    (d) => d.status === "DELIVERED"
+  );
+
   const capacity = currentOrg.capacity || 0;
-  const occupancy = currentOrg.currentOccupancy || 0;
+  const occupancy = receivedDonations.length;
 
   const capacityPercentage =
     capacity > 0 ? Math.round((occupancy / capacity) * 100) : 0;
@@ -40,24 +68,17 @@ const OrganisationDashboard = () => {
         <div className="mb-6 p-4 rounded-xl bg-success/10 border border-success/20 flex items-center gap-3">
           <CheckCircle className="w-5 h-5 text-success" />
           <div>
-            <p className="font-semibold text-foreground">Verified Organisation</p>
+            <p className="font-semibold text-foreground">
+              Verified Organisation
+            </p>
             <p className="text-sm text-muted-foreground">
-              Your organisation is verified and can receive donations
+              Your organisation can receive donations
             </p>
           </div>
         </div>
       ) : (
-        <div className="mb-6 p-4 rounded-xl bg-warning/10 border border-warning/20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Clock className="w-5 h-5 text-warning" />
-            <div>
-              <p className="font-semibold text-foreground">Verification Pending</p>
-              <p className="text-sm text-muted-foreground">
-                Your organisation is under review
-              </p>
-            </div>
-          </div>
-          <Button variant="warning" size="sm">Check Status</Button>
+        <div className="mb-6 p-4 rounded-xl bg-warning/10 border border-warning/20">
+          <p className="font-semibold">Verification Pending</p>
         </div>
       )}
 
@@ -84,43 +105,27 @@ const OrganisationDashboard = () => {
         />
         <StatsCard
           title="Meals Served"
-          value="0"
+          value={receivedDonations.length * 5}
           icon={TrendingUp}
-          subtitle="This month"
+          subtitle="Estimated"
         />
       </div>
 
-      {/* Capacity Section */}
+      {/* Capacity */}
       <div className="bg-card rounded-2xl p-6 border border-border mb-8">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex justify-between mb-4">
           <div>
-            <h3 className="font-display font-bold text-lg text-foreground">Current Capacity</h3>
+            <h3 className="font-bold text-lg">Current Capacity</h3>
             <p className="text-sm text-muted-foreground">
-              {occupancy} of {capacity} people
+              {occupancy} of {capacity}
             </p>
           </div>
-          <span
-            className={`text-2xl font-bold ${
-              capacityPercentage > 90
-                ? 'text-destructive'
-                : capacityPercentage > 70
-                ? 'text-warning'
-                : 'text-success'
-            }`}
-          >
-            {capacityPercentage}%
-          </span>
+          <span className="text-2xl font-bold">{capacityPercentage}%</span>
         </div>
 
-        <div className="h-4 bg-muted rounded-full overflow-hidden">
+        <div className="h-4 bg-muted rounded-full">
           <div
-            className={`h-full rounded-full transition-all duration-500 ${
-              capacityPercentage > 90
-                ? 'bg-destructive'
-                : capacityPercentage > 70
-                ? 'bg-warning'
-                : 'bg-success'
-            }`}
+            className="h-full bg-success rounded-full"
             style={{ width: `${capacityPercentage}%` }}
           />
         </div>
@@ -128,8 +133,8 @@ const OrganisationDashboard = () => {
 
       {/* Incoming Donations */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-bold text-xl text-foreground">Incoming Donations</h2>
+        <div className="flex justify-between mb-4">
+          <h2 className="font-bold text-xl">Incoming Donations</h2>
           <Link to="/organisation/incoming">
             <Button variant="ghost" size="sm">View All</Button>
           </Link>
@@ -146,20 +151,16 @@ const OrganisationDashboard = () => {
             ))}
           </div>
         ) : (
-          <div className="bg-card rounded-2xl p-8 text-center border border-border">
-            <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-foreground mb-2">No incoming donations</h3>
-            <p className="text-sm text-muted-foreground">
-              New donations will appear here when assigned to your organisation.
-            </p>
+          <div className="p-8 text-center border rounded-xl">
+            No incoming donations
           </div>
         )}
       </div>
 
       {/* Received Donations */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-bold text-xl text-foreground">Recently Received</h2>
+        <div className="flex justify-between mb-4">
+          <h2 className="font-bold text-xl">Recently Received</h2>
           <Link to="/organisation/history">
             <Button variant="ghost" size="sm">View History</Button>
           </Link>
@@ -176,12 +177,8 @@ const OrganisationDashboard = () => {
             ))}
           </div>
         ) : (
-          <div className="bg-card rounded-2xl p-8 text-center border border-border">
-            <CheckCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-foreground">No received donations yet</h3>
-            <p className="text-sm text-muted-foreground">
-              Your received donations will appear here.
-            </p>
+          <div className="p-8 text-center border rounded-xl">
+            No received donations yet
           </div>
         )}
       </div>

@@ -1,31 +1,57 @@
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { StatsCard } from '@/components/shared/StatsCard';
-import { DonationCard } from '@/components/shared/DonationCard';
-import { Button } from '@/components/ui/button';
-import { Truck, Clock, CheckCircle, Star, MapPin } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
+import axios from "axios";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { StatsCard } from "@/components/shared/StatsCard";
+import { DonationCard } from "@/components/shared/DonationCard";
+import { Button } from "@/components/ui/button";
+import { Truck, Clock, CheckCircle, Star, MapPin } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const RiderDashboard = () => {
   const [currentRider, setCurrentRider] = useState<any>(null);
+  const [deliveries, setDeliveries] = useState<any[]>([]);
 
+  const token = localStorage.getItem("token");
+
+  /* ================= LOAD RIDER + DELIVERIES ================= */
   useEffect(() => {
     const stored = localStorage.getItem("user");
     if (stored) setCurrentRider(JSON.parse(stored));
+
+    fetchRiderDeliveries();
   }, []);
 
-  // donations will come from backend later
-  const riderDeliveries: any[] = [];
-  const activeDeliveries: any[] = [];
-  const completedDeliveries: any[] = [];
+  const fetchRiderDeliveries = async () => {
+    try {
+      const res = await axios.get(
+        "http://localhost:5000/api/donations/rider",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setDeliveries(res.data);
+    } catch (err) {
+      console.error("Failed to fetch rider deliveries", err);
+    }
+  };
 
   if (!currentRider) {
     return <div className="p-6 text-center text-lg">Loading rider...</div>;
   }
 
+  /* ================= DERIVED DATA ================= */
+  const activeDeliveries = deliveries.filter(
+    (d) => d.status !== "DELIVERED"
+  );
+
+  const completedDeliveries = deliveries.filter(
+    (d) => d.status === "DELIVERED"
+  );
+
   return (
     <DashboardLayout role="rider" userName={currentRider.name}>
-      
       {/* Status Banner */}
       <div
         className={`mb-6 p-4 rounded-xl flex items-center justify-between ${
@@ -71,7 +97,7 @@ const RiderDashboard = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard
           title="Total Deliveries"
-          value={currentRider.totalDeliveries || 0}
+          value={deliveries.length}
           icon={Truck}
           trend="+8 this week"
           trendUp
@@ -83,10 +109,10 @@ const RiderDashboard = () => {
           subtitle="Currently assigned"
         />
         <StatsCard
-          title="Completed Today"
-          value={3}
+          title="Completed"
+          value={completedDeliveries.length}
           icon={CheckCircle}
-          subtitle="Good progress!"
+          subtitle="Successfully delivered"
         />
         <StatsCard
           title="Rating"
@@ -111,7 +137,7 @@ const RiderDashboard = () => {
 
         {activeDeliveries.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {activeDeliveries.map((delivery) => (
+            {activeDeliveries.slice(0, 3).map((delivery) => (
               <DonationCard
                 key={delivery.id}
                 donation={delivery}

@@ -12,6 +12,12 @@ export const createDonation = async (req, res) => {
     if (!foodItems || foodItems.length === 0) {
       return res.status(400).json({ message: "At least one food item required" });
     }
+     const donor = await prisma.user.findUnique({
+      where: { id: donorId }
+    });
+    if (!donor?.address) {
+      return res.status(400).json({ message: "Donor address missing" });
+    }
 
     const organisation = await assignOrganisation();
     if (!organisation) {
@@ -23,7 +29,7 @@ export const createDonation = async (req, res) => {
     const donation = await prisma.donation.create({
       data: {
         donorId,
-        pickupAddress,
+        pickupAddress:donor.address,
         pickupTime: new Date(pickupTime),
         notes,
         organisationId: organisation.id,
@@ -39,10 +45,18 @@ export const createDonation = async (req, res) => {
         rider: true
       }
     });
+    if(rider){
     await prisma.rider.update({
-  where: { userId: rider.userId },
-  data: { isAvailable: false }
-});
+    where: { userId: rider.userId },
+    data: { isAvailable: false }
+  });
+}
+  await prisma.organisation.update({
+    where: { id: organisation.id },
+    data: {
+       isActive:false
+    }
+  });
 
 
     res.status(201).json({ message: "Donation created", donation });
@@ -113,11 +127,10 @@ export const riderAction = async (req, res) => {
       });
     }
      
-  //   await prisma.rider.update({
-  //   where: { userId: req.user.id },
-  //   data: { isAvailable: true }
-  // });// to be done
-    // ❌ REJECT
+ await prisma.rider.update({
+    where: { userId: riderId },
+    data: { isAvailable: true }
+  });
     const newRider = await assignAvailableRider(riderUserId);
 
     const updatedDonation = await prisma.donation.update({
@@ -128,6 +141,12 @@ export const riderAction = async (req, res) => {
       }
     });
     
+    if (newRider) {
+    await prisma.rider.update({
+      where: { id: newRider.id },
+      data: { isAvailable: false }
+    });
+  }
     return res.json({
       message: newRider
         ? "Donation reassigned to another rider"
@@ -150,6 +169,18 @@ export const updateDonationStatus = async (req, res) => {
       where: { id: donationId },
       data: { status }
     });
+
+    if (status === "DELIVERED" && donation.riderId) {
+      await prisma.rider.update({
+        where: { userId: donation.riderId },
+        data: { isAvailable: true }
+      });
+      await prisma.organisation.update({
+        where: { id: donation.organisationId },
+        data: {
+          isActive:true        }
+      });
+    }
 
     res.json({ message: "Status updated", donation });
   } catch (err) {

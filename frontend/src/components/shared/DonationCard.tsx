@@ -3,6 +3,7 @@ import { StatusBadge } from './StatusBadge';
 import { MapPin, Clock, User, Truck, Building2, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { string } from 'zod';
 
 interface DonationCardProps {
   donation: Donation;
@@ -40,7 +41,7 @@ export function DonationCard({
       <div className="flex items-start justify-between mb-4">
         <div>
           <p className="text-xs text-muted-foreground font-medium">Donation ID</p>
-          <p className="font-display font-bold text-foreground">{donation.id.toUpperCase()}</p>
+          <p className="font-display font-bold text-foreground">{`${donation.id}`}</p>
         </div>
         <StatusBadge status={donation.status} />
       </div>

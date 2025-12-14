@@ -1,18 +1,21 @@
-export const assignAvailableRider = async (excludeUserId) => {
-  const rider = await prisma.rider.findFirst({
-    where: {
-      userId: { not: excludeUserId },
-      isAvailable: true  
-    },
-    orderBy: {
-      updatedAt: "asc"   // fair assignment
-    }
-  });
+import prisma from "../config/prisma.js";
 
-  if (!rider) return null;
+export const assignAvailableRider = async () => {
+  try {
+    const rider = await prisma.rider.findFirst({
+      where: {
+        isAvailable: true
+      },
+      orderBy: {
+        id: "asc"
+      }
+    });
 
-  return {
-    riderId: rider.id,
-    userId: rider.userId
-  };
+    // returns null if no rider available
+    return rider;
+
+  } catch (error) {
+    console.error("ASSIGN RIDER ERROR:", error);
+    return null;
+  }
 };

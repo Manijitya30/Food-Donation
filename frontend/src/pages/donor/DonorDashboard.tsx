@@ -1,26 +1,60 @@
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { StatsCard } from '@/components/shared/StatsCard';
-import { DonationCard } from '@/components/shared/DonationCard';
-import { Button } from '@/components/ui/button';
-import { Package, Clock, CheckCircle, TrendingUp, Plus } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { StatsCard } from "@/components/shared/StatsCard";
+import { DonationCard } from "@/components/shared/DonationCard";
+import { Button } from "@/components/ui/button";
+import { Package, Clock, CheckCircle, TrendingUp, Plus } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const DonorDashboard = () => {
-  // ✅ Load real logged-in user
-  const currentDonor = JSON.parse(localStorage.getItem("user") || "{}");
+  const [currentDonor, setCurrentDonor] = useState<any>(null);
+  const [donations, setDonations] = useState<any[]>([]);
 
-  // For now, remove dummy data (until real backend donations exist)
-  const donorDonations: any[] = [];
-  const activeDonations: any[] = [];
-  const completedDonations: any[] = [];
+  const token = localStorage.getItem("token");
+
+  /* ================= LOAD USER + DONATIONS ================= */
+  useEffect(() => {
+    const user = localStorage.getItem("user");
+    if (user) setCurrentDonor(JSON.parse(user));
+
+    fetchDonations();
+  }, []);
+
+  const fetchDonations = async () => {
+    try {
+      const res = await axios.get(
+        "http://localhost:5000/api/donations/my",
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setDonations(res.data);
+    } catch (err) {
+      console.error("Failed to fetch donations", err);
+    }
+  };
+
+  if (!currentDonor) return <div className="p-6">Loading...</div>;
+
+  /* ================= DERIVED DATA ================= */
+  const activeDonations = donations.filter(
+    (d) => d.status !== "DELIVERED"
+  );
+
+  const completedDonations = donations.filter(
+    (d) => d.status === "DELIVERED"
+  );
 
   return (
-    <DashboardLayout role="donor" userName={currentDonor?.name}>
+    <DashboardLayout role="donor" userName={currentDonor.name}>
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <StatsCard
           title="Total Donations"
-          value={currentDonor.totalDonations || 0}
+          value={donations.length}
           icon={Package}
           trend="+12% from last month"
           trendUp
@@ -32,12 +66,14 @@ const DonorDashboard = () => {
           icon={Clock}
           subtitle="Currently in progress"
         />
+
         <StatsCard
           title="Completed"
           value={completedDonations.length}
           icon={CheckCircle}
           subtitle="Successfully delivered"
         />
+
         <StatsCard
           title="Impact Score"
           value="A+"
@@ -49,11 +85,16 @@ const DonorDashboard = () => {
       {/* Active Donations */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-bold text-xl text-foreground">Active Donations</h2>
+          <h2 className="font-display font-bold text-xl text-foreground">
+            Active Donations
+          </h2>
           <Link to="/donor/donations">
-            <Button variant="ghost" size="sm">View All</Button>
+            <Button variant="ghost" size="sm">
+              View All
+            </Button>
           </Link>
         </div>
+
         {activeDonations.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {activeDonations.slice(0, 3).map((donation) => (
@@ -67,7 +108,9 @@ const DonorDashboard = () => {
         ) : (
           <div className="bg-card rounded-2xl p-8 text-center border border-border">
             <Package className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-foreground mb-2">No active donations</h3>
+            <h3 className="font-semibold text-foreground mb-2">
+              No active donations
+            </h3>
             <p className="text-sm text-muted-foreground mb-4">
               Start making a difference by donating surplus food
             </p>
@@ -84,11 +127,16 @@ const DonorDashboard = () => {
       {/* Recent History */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display font-bold text-xl text-foreground">Recent Deliveries</h2>
-          <Link to="/donor/history">
-            <Button variant="ghost" size="sm">View History</Button>
+          <h2 className="font-display font-bold text-xl text-foreground">
+            Recent Deliveries
+          </h2>
+          <Link to="/donor/donations">
+            <Button variant="ghost" size="sm">
+              View History
+            </Button>
           </Link>
         </div>
+
         {completedDonations.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {completedDonations.slice(0, 3).map((donation) => (
@@ -102,7 +150,9 @@ const DonorDashboard = () => {
         ) : (
           <div className="bg-card rounded-2xl p-8 text-center border border-border">
             <CheckCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="font-semibold text-foreground">No completed donations yet</h3>
+            <h3 className="font-semibold text-foreground">
+              No completed donations yet
+            </h3>
             <p className="text-sm text-muted-foreground">
               Your completed donations will appear here
             </p>

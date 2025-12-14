@@ -3,12 +3,15 @@ import prisma from "../config/prisma.js";
 export const assignOrganisation = async () => {
   try {
     const organisation = await prisma.organisation.findFirst({
-      orderBy: {
-        id: "asc",
+      where: {
+        isActive: true
       },
+      orderBy: {
+        id: "asc"
+      }
     });
 
-    return organisation;
+    return organisation || null;
   } catch (error) {
     console.error("ASSIGN ORGANISATION ERROR:", error);
     return null;
