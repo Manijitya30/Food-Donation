@@ -1,22 +1,20 @@
-import { DashboardLayout } from '@/components/layout/DashboardLayout';
-import { StatsCard } from '@/components/shared/StatsCard';
-import { StatusBadge } from '@/components/shared/StatusBadge';
-import { Button } from '@/components/ui/button';
-
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { StatsCard } from "@/components/shared/StatsCard";
+import { StatusBadge } from "@/components/shared/StatusBadge";
+import { Button } from "@/components/ui/button";
 import {
   Package,
   Users,
   Truck,
   Building2,
-  TrendingUp,
-  Utensils,
   ArrowRight,
-} from 'lucide-react';
+  Utensils,
+  TrendingUp
+} from "lucide-react";
+import { Link } from "react-router-dom";
 
-import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-
-// Recharts
 import {
   AreaChart,
   Area,
@@ -27,232 +25,145 @@ import {
   ResponsiveContainer,
   PieChart,
   Pie,
-  Cell,
-} from 'recharts';
+  Cell
+} from "recharts";
 
 const AdminDashboard = () => {
-  const [adminUser, setAdminUser] = useState<any>(null);
-
-  // TODO: Later fetch these from backend APIs
-  const [recentDonations] = useState<any[]>([]);
-  const [recentDonors] = useState<any[]>([]);
-  const [adminStats] = useState<any>({
-    totalDonations: 0,
-    monthlyGrowth: "+0%",
-    totalDonors: 0,
-    totalRiders: 0,
-    totalOrganisations: 0,
-    foodSaved: "0 kg",
-    mealsServed: "0",
-  });
-
-  const [monthlyDonations] = useState<any[]>([]);
-  const [categoryDistribution] = useState<any[]>([]);
-
-  const COLORS = [
-    'hsl(145, 45%, 35%)',
-    'hsl(35, 85%, 55%)',
-    'hsl(200, 80%, 50%)',
-    'hsl(0, 84%, 60%)',
-    'hsl(270, 50%, 50%)',
-  ];
+  const [adminUser, setAdminUser] = useState(null);
+  const [stats, setStats] = useState(null);
+  const [recentDonations, setRecentDonations] = useState([]);
+  const [recentDonors, setRecentDonors] = useState([]);
+  const [monthlyDonations, setMonthlyDonations] = useState([]);
+  const [categoryDistribution, setCategoryDistribution] = useState([]);
+  const currentYear = new Date().getFullYear();
+const [year, setYear] = useState(currentYear);
+const [month, setMonth] = useState("");
+ 
+  const COLORS = ["#16a34a", "#f59e0b", "#3b82f6", "#ef4444", "#8b5cf6"];
 
   useEffect(() => {
-    const stored = localStorage.getItem("user");
-    if (stored) {
-      const user = JSON.parse(stored);
-      if (user.role === "ADMIN") {
-        setAdminUser(user);
+    const user = localStorage.getItem("user");
+    if (user) setAdminUser(JSON.parse(user));
+
+    const fetchAdminData = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+       const res = await axios.get(
+  `http://localhost:5000/api/admin/stats?year=${year}&month=${month}`,
+  {
+    headers: { Authorization: `Bearer ${token}` }
+  }
+);
+
+
+        setStats(res.data.stats);
+        setRecentDonations(res.data.recentDonations || []);
+        setRecentDonors(res.data.recentDonors || []);
+        setMonthlyDonations(res.data.monthlyDonations || []);
+        setCategoryDistribution(res.data.categoryDistribution || []);
+      } catch (err) {
+        console.error("ADMIN FETCH ERROR:", err);
       }
-    }
+    };
+
+    fetchAdminData();
   }, []);
 
-  if (!adminUser) {
-    return (
-      <div className="p-6 text-center text-lg">
-        Loading admin dashboard...
-      </div>
-    );
+  if (!adminUser || !stats) {
+    return <div className="p-6 text-center">Loading admin dashboard...</div>;
   }
 
   return (
     <DashboardLayout role="admin" userName={adminUser.name}>
       
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <StatsCard
-          title="Total Donations"
-          value={adminStats.totalDonations}
-          icon={Package}
-          trend={adminStats.monthlyGrowth}
-          trendUp
-        />
-        <StatsCard
-          title="Active Donors"
-          value={adminStats.totalDonors}
-          icon={Users}
-          subtitle="+0 this month"
-        />
-        <StatsCard
-          title="Active Riders"
-          value={adminStats.totalRiders}
-          icon={Truck}
-          subtitle="+0 this month"
-        />
-        <StatsCard
-          title="Organisations"
-          value={adminStats.totalOrganisations}
-          icon={Building2}
-          subtitle="All verified"
-        />
+      {/* ================= TOP STATS (KEEP CLEAN) ================= */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-10">
+        <StatsCard title="Total Donations" value={stats.totalDonations} icon={Package} />
+        <StatsCard title="Donors" value={stats.totalDonors} icon={Users} />
+        <StatsCard title="Riders" value={stats.totalRiders} icon={Truck} />
+        <StatsCard title="Organisations" value={stats.totalOrganisations} icon={Building2} />
       </div>
 
-      {/* Impact Stats */}
-      <div className="grid md:grid-cols-2 gap-6 mb-8">
-        <div className="bg-gradient-primary rounded-2xl p-6 text-primary-foreground">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-primary-foreground/70 text-sm font-medium">Food Saved</p>
-              <p className="text-4xl font-display font-bold mt-1">{adminStats.foodSaved}</p>
-              <p className="text-sm text-primary-foreground/70 mt-2">
-                Equivalent to reducing CO₂ emissions
-              </p>
-            </div>
-            <div className="w-16 h-16 rounded-2xl bg-primary-foreground/20 flex items-center justify-center">
-              <TrendingUp className="w-8 h-8" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-gradient-secondary rounded-2xl p-6 text-secondary-foreground">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-secondary-foreground/70 text-sm font-medium">Meals Served</p>
-              <p className="text-4xl font-display font-bold mt-1">{adminStats.mealsServed}</p>
-              <p className="text-sm text-secondary-foreground/70 mt-2">
-                Helping communities every day
-              </p>
-            </div>
-            <div className="w-16 h-16 rounded-2xl bg-secondary-foreground/20 flex items-center justify-center">
-              <Utensils className="w-8 h-8" />
-            </div>
-          </div>
-        </div>
+      {/* ================= IMPACT STATS (SEPARATE DIV) ================= */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        <StatsCard title="Food Saved" value={stats.foodSaved} icon={Utensils} />
+        <StatsCard title="Meals Served" value={stats.mealsServed} icon={Utensils} />
+        <StatsCard title="Monthly Growth" value={stats.monthlyGrowth} icon={TrendingUp} />
       </div>
+       
 
-      {/* Charts */}
-      <div className="grid lg:grid-cols-3 gap-6 mb-8">
-        
-        {/* Donations Chart */}
-        <div className="lg:col-span-2 bg-card rounded-2xl p-6 border border-border">
-          <h3 className="font-display font-bold text-lg text-foreground mb-4">
-            Monthly Donations
-          </h3>
+      {/* ================= CHARTS ================= */}
+      <div className="grid lg:grid-cols-3 gap-6 mb-10">
+        <div className="lg:col-span-2 bg-card p-6 rounded-xl">
+          <h3 className="font-bold mb-4">Monthly Donations</h3>
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart data={monthlyDonations}>
-              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" />
-              <YAxis stroke="hsl(var(--muted-foreground))" />
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
               <Tooltip />
-              <Area 
+              <Area
                 type="monotone"
                 dataKey="donations"
-                stroke="hsl(145, 45%, 35%)"
-                fill="hsl(145, 45%, 35%)"
+                stroke="#16a34a"
                 fillOpacity={0.2}
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
 
-        {/* Category Distribution */}
-        <div className="bg-card rounded-2xl p-6 border border-border">
-          <h3 className="font-display font-bold text-lg text-foreground mb-4">Food Categories</h3>
-          
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Pie
-                data={categoryDistribution}
-                innerRadius={50}
-                outerRadius={80}
-                paddingAngle={5}
-                dataKey="value"
-              >
-                {categoryDistribution.map((_, i) => (
-                  <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-            </PieChart>
-          </ResponsiveContainer>
+        <div className="bg-card p-6 rounded-xl">
+          <h3 className="font-bold mb-4">Food Categories</h3>
+          {categoryDistribution.length > 0 ? (
+            <ResponsiveContainer width="100%" height={220}>
+              <PieChart>
+                <Pie
+                  data={categoryDistribution}
+                  dataKey="value"
+                  innerRadius={55}
+                  outerRadius={90}
+                >
+                  {categoryDistribution.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-center text-muted-foreground">No category data</p>
+          )}
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        
-        {/* Recent Donations */}
-        <div className="bg-card rounded-2xl border border-border overflow-hidden">
-          <div className="p-5 border-b border-border flex items-center justify-between">
-            <h3 className="font-display font-bold text-lg text-foreground">Recent Donations</h3>
-            <Link to="/admin/donations">
-              <Button variant="ghost" size="sm">
-                View All <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </Link>
-          </div>
+      {/* ================= RECENT DONATIONS ================= */}
+      <div className="bg-card rounded-xl">
+        <div className="p-4 border-b flex justify-between">
+          <h3 className="font-bold">Recent Donations</h3>
+          <Link to="/admin/donations">
+            <Button variant="ghost" size="sm">
+              View All <ArrowRight className="w-4 h-4 ml-1" />
+            </Button>
+          </Link>
+        </div>
 
-          <div className="divide-y divide-border">
-            {recentDonations.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground">
-                No donations yet
+        {recentDonations.length === 0 ? (
+          <p className="p-4 text-center text-muted-foreground">No donations yet</p>
+        ) : (
+          recentDonations.map(d => (
+            <div key={d.id} className="p-4 flex justify-between">
+              <div>
+                <p className="font-medium">{d.donor?.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {d.foodItems?.length || 0} items →{" "}
+                  {d.organisation?.user?.name || "Unassigned"}
+                </p>
               </div>
-            ) : (
-              recentDonations.map((donation) => (
-                <div key={donation.id} className="p-4 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{donation.donor?.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {donation.foodItems?.length} items → {donation.organisation?.name}
-                    </p>
-                  </div>
-                  <StatusBadge status={donation.status} />
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        {/* Recent Donors */}
-        <div className="bg-card rounded-2xl border border-border overflow-hidden">
-          <div className="p-5 border-b border-border flex items-center justify-between">
-            <h3 className="font-display font-bold text-lg text-foreground">Recent Donors</h3>
-            <Link to="/admin/donors">
-              <Button variant="ghost" size="sm">
-                View All <ArrowRight className="w-4 h-4 ml-1" />
-              </Button>
-            </Link>
-          </div>
-
-          <div className="divide-y divide-border">
-            {recentDonors.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground">No donors yet</div>
-            ) : (
-              recentDonors.map((donor) => (
-                <div key={donor.id} className="p-4 flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-gradient-primary flex items-center justify-center text-primary-foreground">
-                    {donor.name.charAt(0)}
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium">{donor.name}</p>
-                    <p className="text-sm text-muted-foreground">{donor.email}</p>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
+              <StatusBadge status={d.status} />
+            </div>
+          ))
+        )}
       </div>
 
     </DashboardLayout>

@@ -122,6 +122,7 @@ const Index = () => {
       </section>
 
       {/* How It Works */}
+      {/* How It Works */}
       <section className="py-20 px-4">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center mb-16">
@@ -132,24 +133,40 @@ const Index = () => {
               Getting started is simple. Follow these easy steps to make a difference.
             </p>
           </div>
-          <div className="grid md:grid-cols-4 gap-8">
+
+          <div className="relative grid md:grid-cols-4 gap-12">
             {howItWorks.map((item, index) => (
-              <div key={item.step} className="relative">
-                <div className="text-center">
-                  <div className="w-16 h-16 rounded-full bg-gradient-primary flex items-center justify-center mx-auto mb-4 shadow-lg">
-                    <span className="text-2xl font-display font-bold text-primary-foreground">{item.step}</span>
-                  </div>
-                  <h3 className="font-display font-bold text-lg text-foreground mb-2">{item.title}</h3>
-                  <p className="text-sm text-muted-foreground">{item.description}</p>
+              <div key={item.step} className="relative text-center">
+                
+                {/* Step Circle */}
+                <div className="relative z-10 w-16 h-16 rounded-full bg-gradient-primary 
+                                flex items-center justify-center mx-auto mb-4 shadow-lg">
+                  <span className="text-2xl font-display font-bold text-primary-foreground">
+                    {item.step}
+                  </span>
                 </div>
+
+                {/* Title */}
+                <h3 className="font-display font-bold text-lg text-foreground mb-2">
+                  {item.title}
+                </h3>
+
+                {/* Description */}
+                <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                  {item.description}
+                </p>
+
+                {/* Connector Line */}
                 {index < howItWorks.length - 1 && (
-                  <div className="hidden md:block absolute top-8 left-[60%] w-[80%] h-0.5 bg-border" />
+                  <div className="hidden md:block absolute top-8 left-1/2 
+                                  w-full h-0.5 bg-border translate-x-8" />
                 )}
               </div>
             ))}
           </div>
         </div>
       </section>
+
 
       {/* CTA Section */}
       <section className="py-20 px-4">
@@ -186,7 +203,7 @@ const Index = () => {
               </span>
             </div>
             <p className="text-sm text-muted-foreground">
-              © 2024 NourishNet. All rights reserved. Made with ❤️ for a hunger-free world.
+              © 2025 NourishNet. All rights reserved. 
             </p>
           </div>
         </div>
