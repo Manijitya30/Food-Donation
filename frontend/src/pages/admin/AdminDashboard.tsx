@@ -149,19 +149,24 @@ const [month, setMonth] = useState("");
         </div>
 
         {recentDonations.length === 0 ? (
-          <p className="p-4 text-center text-muted-foreground">No donations yet</p>
+           <div className="p-6 text-muted-foreground">
+              No donations found
+            </div>
         ) : (
           recentDonations.map(d => (
-            <div key={d.id} className="p-4 flex justify-between">
-              <div>
-                <p className="font-medium">{d.donor?.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {d.foodItems?.length || 0} items →{" "}
-                  {d.organisation?.user?.name || "Unassigned"}
-                </p>
+           <Link
+              key={d.id}
+              to={`/admin/donations/${d.id}`}
+              className="p-4 block hover:bg-muted transition"
+            >
+              <p className="font-medium">
+                {d.donor?.name || "Unknown Donor"}
+              </p>
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>{(d.foodItems?.length || 0)} items</span>
+                <StatusBadge status={d.status} />
               </div>
-              <StatusBadge status={d.status} />
-            </div>
+            </Link>
           ))
         )}
       </div>
