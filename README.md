@@ -1,6 +1,6 @@
 # Nourish — Food Donation Platform
 
-> Status: In development ✅
+
 
 ---
 
